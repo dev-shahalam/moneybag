@@ -33,7 +33,7 @@
 
 import type { Metadata } from "next";
 import "./globals.css";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "Money Bag - Personal Finance Manager",

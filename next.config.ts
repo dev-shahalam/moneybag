@@ -7,6 +7,9 @@ const withPWA = nextPWA({
   disable: process.env.NODE_ENV === 'development',
 });
 
-const nextConfig = {};
+const nextConfig = {
+  // Turbopack কনফ্লিক্ট দূর করার জন্য এই লাইনটি যুক্ত করা হলো
+  turbopack: {},
+};
 
 export default withPWA(nextConfig);

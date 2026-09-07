@@ -132,7 +132,6 @@ export default function MoneyBagApp() {
             if (data.cashBalance !== undefined) setCashBalance(data.cashBalance);
             setSyncStatus('Synced');
           } else {
-            // If new user, check localStorage or initialize empty
             setSyncStatus('Connected');
           }
         } catch (err) {
@@ -145,7 +144,7 @@ export default function MoneyBagApp() {
     return () => unsubscribe();
   }, []);
 
-  // Save to Firestore & LocalStorage on data change
+  // Save to Firestore on data change
   useEffect(() => {
     if (!isClient || !user) return;
 
@@ -166,7 +165,7 @@ export default function MoneyBagApp() {
       }
     };
 
-    const timeout = setTimeout(saveData, 1000); // Debounce sync
+    const timeout = setTimeout(saveData, 1000);
     return () => clearTimeout(timeout);
   }, [transactions, loans, assets, cashBalance, user, isClient]);
 
@@ -180,7 +179,21 @@ export default function MoneyBagApp() {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err: any) {
-      setAuthError(err.message);
+      let friendlyError = '⚠️ কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+      
+      if (err.code === 'auth/invalid-email' || err.message.includes('invalid-email')) {
+        friendlyError = '⚠️ দয়া করে সঠিক ফরম্যাটে ইমেইল এড্রেস লিখুন (যেমন: name@gmail.com)';
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        friendlyError = '⚠️ এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট নেই অথবা পাসওয়ার্ড ভুল হয়েছে।';
+      } else if (err.code === 'auth/wrong-password') {
+        friendlyError = '⚠️ আপনার পাসওয়ার্ডটি ভুল হয়েছে।';
+      } else if (err.code === 'auth/email-already-in-use') {
+        friendlyError = '⚠️ এই ইমেইল দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা আছে। দয়া করে লগইন করুন।';
+      } else if (err.code === 'auth/weak-password') {
+        friendlyError = '⚠️ পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে।';
+      }
+
+      setAuthError(friendlyError);
     }
   };
 

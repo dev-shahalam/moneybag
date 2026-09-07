@@ -1,6 +1,6 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -18,9 +18,16 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 
+// Set Auth Persistence to LOCAL so users stay logged in offline
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Auth persistence error: ", error);
+});
+
 // Enable Offline Persistence for Firestore (Works offline & online seamlessly)
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
   })
 });
+
+export { app };

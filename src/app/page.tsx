@@ -77,7 +77,7 @@ export default function MoneyBagApp() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [cashBalance, setCashBalance] = useState<number>(0);
   const [isClient, setIsClient] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<string>('');
+  const [syncStatus, setSyncStatus] = useState<string>('Ready');
 
   // Edit states
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
@@ -113,16 +113,16 @@ export default function MoneyBagApp() {
   const [depositAmount, setDepositAmount] = useState('');
   const [depositDate, setDepositDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Auth Listener & Initial Load
+  // Auth Listener & Initial Load with Offline Support
   useEffect(() => {
     setIsClient(true);
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Fetch data from Firestore
-        setSyncStatus('Syncing from cloud...');
+        setSyncStatus('Syncing...');
         try {
           const docRef = doc(db, 'users', currentUser.uid);
+          // Try fetching with offline cache fallback
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
@@ -132,11 +132,11 @@ export default function MoneyBagApp() {
             if (data.cashBalance !== undefined) setCashBalance(data.cashBalance);
             setSyncStatus('Synced');
           } else {
-            setSyncStatus('Connected');
+            setSyncStatus('Online Ready');
           }
         } catch (err) {
-          console.error("Error fetching cloud data:", err);
-          setSyncStatus('Sync failed');
+          console.error("Offline or cloud fetch error:", err);
+          setSyncStatus('Offline Mode');
         }
       }
       setAuthLoading(false);
@@ -144,7 +144,7 @@ export default function MoneyBagApp() {
     return () => unsubscribe();
   }, []);
 
-  // Save to Firestore on data change
+  // Save to Firestore on data change (Seamless offline & online support)
   useEffect(() => {
     if (!isClient || !user) return;
 
@@ -160,8 +160,8 @@ export default function MoneyBagApp() {
         }, { merge: true });
         setSyncStatus('Cloud Saved');
       } catch (err) {
-        console.error("Error saving to cloud:", err);
-        setSyncStatus('Save failed');
+        console.error("Error saving to cloud (Offline):", err);
+        setSyncStatus('Offline (Saved Locally)');
       }
     };
 
@@ -179,18 +179,20 @@ export default function MoneyBagApp() {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err: any) {
-      let friendlyError = '⚠️ কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+      let friendlyError = '⚠️ কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।';
       
-      if (err.code === 'auth/invalid-email' || err.message.includes('invalid-email')) {
-        friendlyError = '⚠️ দয়া করে সঠিক ফরম্যাটে ইমেইল এড্রেস লিখুন (যেমন: name@gmail.com)';
+      if (err.code === 'auth/invalid-email' || err.message?.includes('invalid-email')) {
+        friendlyError = '⚠️ দয়া করে সঠিক ফরম্যাটে ইমেইল এড্রেস লিখুন (যেমন: name@gmail.com)';
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        friendlyError = '⚠️ এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট নেই অথবা পাসওয়ার্ড ভুল হয়েছে।';
+        friendlyError = '⚠️ এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট নেই অথবা পাসওয়ার্ড ভুল হয়েছে।';
       } else if (err.code === 'auth/wrong-password') {
-        friendlyError = '⚠️ আপনার পাসওয়ার্ডটি ভুল হয়েছে।';
+        friendlyError = '⚠️ আপনার পাসওয়ার্ডটি ভুল হয়েছে।';
       } else if (err.code === 'auth/email-already-in-use') {
-        friendlyError = '⚠️ এই ইমেইল দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা আছে। দয়া করে লগইন করুন।';
+        friendlyError = '⚠️ এই ইমেইল দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা আছে। দয়া করে লগইন করুন।';
       } else if (err.code === 'auth/weak-password') {
-        friendlyError = '⚠️ পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে।';
+        friendlyError = '⚠️ পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে।';
+      } else if (err.code === 'auth/network-request-failed') {
+        friendlyError = '⚠️ ইন্টারনেট সংযোগ নেই। অফলাইনে লগইন করতে হলে আগে একবার অনলাইনে লগইন করা থাকতে হবে।';
       }
 
       setAuthError(friendlyError);
@@ -238,7 +240,7 @@ export default function MoneyBagApp() {
   const assetPercent = grandTotal > 0 ? Math.round((totalAssetsValue / grandTotal) * 100) : 0;
 
   if (!isClient || authLoading) {
-    return <div className="bg-gray-950 h-screen text-white flex items-center justify-center">Loading Money Bag...</div>;
+    return <div className="bg-gray-950 h-screen text-white flex items-center justify-center font-sans">Loading Money Bag...</div>;
   }
 
   // If user is not logged in, show Auth Screen

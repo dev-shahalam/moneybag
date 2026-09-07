@@ -31,6 +31,7 @@
 // }
 
 
+
 import type { Metadata } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
@@ -39,6 +40,11 @@ export const metadata: Metadata = {
   title: "Money Bag - Personal Finance Manager",
   description: "Manage your income, expense, loans and assets securely.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
   themeColor: "#00556A",
 };
 
